@@ -25,8 +25,8 @@ pair A = dir(110);
 pair B = dir(210);
 pair C = dir(330);
 pair D = foot(A, B, C);
-pair E = midpoint(A--B);
-pair F_prime = rotate(-30, E)*extension(A, foot(A, B, C), C, E);
+pair E = ((A + B) / 2);
+pair F_prime = rotate(-30, E) * extension(A, foot(A, B, C), C, E);
 
 filldraw(circumcircle(A, B, C), opacity(0.2)+lightgray, defaultpen);
 draw(A--B--C--cycle);
