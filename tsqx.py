@@ -14,29 +14,7 @@ def generate_points(kind, n):
         return [f"dir({(90 + i*360/n) % 360})" for i in range(n)]
     raise SyntaxError("Special command not recognized")
 
-
 class Op:
-    def _join_exp(self, exp, join_str):
-        return join_str.join(self._emit_exp(e) for e in exp)
-
-    def _emit_exp(self, exp):
-        if not isinstance(exp, list):
-            return exp
-        if "," in exp:
-            return f"({self._join_exp(exp, ' ')})"
-        head, *tail = exp
-        if not tail:
-            return head
-        if tail[0] in ["--", "..", "^^"]:
-            return self._join_exp(exp, ", ")
-        return f"{head}({self._join_exp(tail, ', ')})"
-
-    def emit_exp(self):
-        res = self._join_exp(self.exp, "*")
-        for j in ["--", "..", "^^"]:
-            res = res.replace(f", {j}, ", j)
-        return res
-
     def emit(self):
         raise Exception("Operation not recognized")
 
@@ -47,7 +25,6 @@ class Op:
 class Blank(Op):
     def emit(self):
         return ""
-
 
 class Point():
     def __init__(self, name, exp, **options):
@@ -60,7 +37,6 @@ class Point():
         self.direction = options.get("direction", f"dir({name})")
 
     def emit(self):
-        #return f"pair {self.name} = {self.emit_exp()};"
         return f"pair {self.name} = {self.exp};"
 
     def post_emit(self):
@@ -97,78 +73,29 @@ class Parser:
             self.alias_map |= {"": "l", ";": "dl"}
         self.aliases = self.alias_map.keys() | self.alias_map.values()
 
-    def tokenize(self, line):
+    def sanitize(self, line):
         line = line.strip() + " "
         for old, new in [
-            # spline joiners
-            ("--", " --  "),
-            ("..", " .. "),
-            ("^^", " ^^ "),
-            # no spaces around asymptote arithmetic
-            (" +", "+"),
-            ("+ ", "+"),
-            ("- ", "-"),
-            (" *", "*"),
-            ("* ", "*"),
-            # but slashes in draw ops should remain tokens
-            (" / ", "  /  "),
-            (" /", "/"),
-            ("/ ", "/"),
             # ' not allowed in variable names
             ("'", "_prime"),
-            # ~ and = are separate tokens
+            # ~, =, / are separate tokens
             ("~", " ~ "),
             ("=", " = "),
-            # for tsqx syntax processing
-            ("(", "( "),
-            (")", " ) "),
-            (",", " , "),
+            ("/", " / "),
         ]:
             line = line.replace(old, new)
-        return list(filter(None, line.split()))
+        return line.strip()
 
-    """
-    def parse_subexp(self, tokens, idx, func_mode=False):
-        #print('subexp', tokens, idx)
-        token = tokens[idx]
-        if token[-1] == "(":
-            is_func = len(token) > 1
-            res = []
-            idx += 1
-            if is_func:
-                res.append(token[:-1])
-            #print('start while', tokens, idx)
-            while tokens[idx][0] != ")":
-                #print('start', tokens, idx)
-                exp, idx = self.parse_subexp(tokens, idx, is_func)
-                res.append(exp)
-                #print('end', tokens, idx)
-            return res, idx + 1
-        if token == "," and func_mode:
-            return "", idx + 1
-        return token, idx + 1
-
-    def parse_exp(self, tokens):
-        #print('exp', tokens)
-        if tokens[0][-1] != "(" or tokens[-1] != ")":
-            tokens = ["(", *tokens, ")"]
-        res = []
-        idx = 0
-        while idx != len(tokens):
-            try:
-                exp, idx = self.parse_subexp(tokens, idx)
-                res.append(list(filter(None, exp)))
-            except IndexError:
-                raise SyntaxError("Unexpected end of line")
-        return res
-    """
-
-    def parse_special(self, tokens, comment):
-        if not tokens:
+    def parse_special(self, line, comment):
+        if not line:
             raise SyntaxError("Can't parse special command")
-        head, *tail = tokens
+
+        head, *tail = line.split()
+
+        # put inline comment before
         if comment:
             yield Blank(), comment
+            
         if head in ["triangle", "regular"]:
             for name, exp in zip(tail, generate_points(head, len(tail))):
                 yield Point(name, exp), None
@@ -176,10 +103,11 @@ class Parser:
         else:
             raise SyntaxError("Special command not recognized")
 
-    def parse_name(self, tokens):
-        if not tokens:
+    def parse_name(self, line):
+        if not line:
             raise SyntaxError("Can't parse point name")
-        name, *rest = tokens
+
+        name, *rest = line.split()
 
         if rest and rest[-1] in self.aliases:
             *rest, opts = rest
@@ -205,14 +133,14 @@ class Parser:
             raise SyntaxError("Can't parse point name")
         return name, options
 
-    def parse_draw(self, tokens):
+    def parse_draw(self, line):
         try:
-            idx = tokens.index("/")
-            fill_ = tokens[:idx]
-            outline = tokens[idx + 1 :]
+            idx = line.index("/")
+            fill_ = line[:idx].split()
+            outline = line[idx + 1:].split()
         except ValueError:
             fill_ = []
-            outline = tokens
+            outline = line.split()
 
         fill = []
         for pen in fill_:
@@ -225,22 +153,20 @@ class Parser:
 
     def parse(self, line):
         line, *comment = line.split("#", 1)
-        tokens = self.tokenize(line)
-        if not tokens:
+        line = self.sanitize(line)
+
+        if line.strip() == "":
             yield (Blank(), comment)
             return
         # special
-        if tokens[0] == "~":
-            yield from self.parse_special(tokens[1:], comment)
+        if line[0] == '~':
+            yield from self.parse_special(line[1:], comment)
             return
         # point
         try:
-            idx = tokens.index("=")
-            name, options = self.parse_name(tokens[:idx])
-
-            jdx = line.index("=")
-            exp = parse.SyntaxNode(line[jdx + 1:]).emit()
-            #exp = self.parse_exp(tokens[idx + 1 :])
+            idx = line.index("=")
+            name, options = self.parse_name(line[:idx])
+            exp = parse.SyntaxNode(line[idx + 1:]).emit()
 
             yield Point(name, exp, **options), comment
             return
@@ -248,19 +174,15 @@ class Parser:
             pass
         # draw with options
         try:
-            idx = tokens.index("/")
+            idx = line.index("/")
+            exp = parse.SyntaxNode(line[:idx]).emit()
 
-            jdx = line.index("/")
-            exp = parse.SyntaxNode(line[:jdx]).emit()
-            #exp = self.parse_exp(tokens[:idx])
-
-            options = self.parse_draw(tokens[idx + 1 :])
+            options = self.parse_draw(line[idx + 1 :])
             yield Draw(exp, **options), comment
             return
         except ValueError:
             pass
         # draw without options
-        #exp = self.parse_exp(tokens)
         exp = parse.SyntaxNode(line).emit()
         yield Draw(exp), comment
         return
