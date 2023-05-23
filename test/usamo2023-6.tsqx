@@ -1,0 +1,18 @@
+~triangle A B C
+I = incenter A B C
+I_A = excenter A B C
+I_B = excenter B C A
+I_C = excenter C A B
+D = dir 290
+F = OP (circle D I I_A) (circle D I_B I_C)
+E = extension D F B C 
+M = / (+ E F) 2
+
+-- A B C cycle / 0.1 blue /blue
+circle A B C / blue
+-- A I_A / purple
+-- B I_B / purple
+-- C I_C / purple
+-- I_A I_B I_C cycle / heavygreen
+circle D I I_A / red
+circle D I_B I_C / red

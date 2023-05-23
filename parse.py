@@ -10,6 +10,7 @@
 # (shift (0, 1) (rotate -30 E (foot A B C))) => shift((0, 1)) * rotate(-30, E) * foot(A, B, C)
 
 import re
+import abbr
 function_name = re.compile(r'^[a-zA-Z][a-zA-Z0-9]*$')
 
 transforms = ["identity", "shift", "xscale", "yscale", "scale", "slant", "rotate", "reflect", "zeroTransform"]
@@ -89,8 +90,12 @@ class SyntaxNode:
                 return token0 + '(' + ", ".join(true_children[:-1]) + ')' \
                     + " * " + true_children[-1]
 
+            if token0 in abbr.functions:
+                return abbr.functions[token0] (*true_children)
+
             # function like incenter
-            return token0 + '(' + ", ".join(true_children) + ')'
+            return (abbr.short_names[token0] if token0 in abbr.short_names else token0) \
+                    + '(' + ", ".join(true_children) + ')'
 
         # operator like +
         else:

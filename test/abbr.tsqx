@@ -1,0 +1,12 @@
+~triangle A B C
+I N = incenter A B C
+G N = centroid A B C
+H W = orthocenter A B C
+O N = circumcenter A B C
+D S = extension A H B C 
+I_A N = excenter A B C
+
+-- A B C cycle / blue
+-- A D / blue
+circle A B C / 0.1 blue / blue
+rightangle A D B 4 / red
