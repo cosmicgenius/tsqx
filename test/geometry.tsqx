@@ -1,0 +1,10 @@
+O W = origin
+M N = (2, 1)
+P S = (2, -1)
+M' E = inversion 2 O M
+P' E = inversion 2 O P
+
+circle M P M' 
+CR O (sqrt 2) / red
+line O false (IP (circle M P M') (CR O (sqrt 2)))
+line O false (OP (circle M P M') (CR O (sqrt 2)))

@@ -9,4 +9,3 @@ I_A N = excenter A B C
 -- A B C cycle / blue
 -- A D / blue
 circle A B C / 0.1 blue / blue
-rightangle A D B 4 / red

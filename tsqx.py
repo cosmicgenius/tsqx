@@ -58,7 +58,7 @@ class Draw(Op):
     def emit(self):
         if self.fill:
             outline = self.outline or "defaultpen"
-            return f"filldraw({self.exp}, {self.fill}, {outline});"
+            return f"filldraw((path) {self.exp}, {self.fill}, {outline});"
         elif self.outline:
             return f"draw({self.exp}, {self.outline});"
         else:
@@ -197,9 +197,11 @@ class Emitter:
         self.parser = Parser(**args)
 
     def emit(self):
+        # kind of required?
+        self.print("import geometry;")
         if self.preamble:
-            self.print("import olympiad;")
-            self.print("import cse5;")
+            #self.print("import olympiad;")
+            #self.print("import cse5;")
             self.print("size(%s);" % self.size)
             self.print("defaultpen(fontsize(9pt));")
             self.print('settings.outformat="pdf";')

@@ -10,10 +10,13 @@
 # (shift (0, 1) (rotate -30 E (foot A B C))) => shift((0, 1)) * rotate(-30, E) * foot(A, B, C)
 
 import re
-import abbr
-function_name = re.compile(r'^[a-zA-Z][a-zA-Z0-9]*$')
+import alias
 
-transforms = ["identity", "shift", "xscale", "yscale", "scale", "slant", "rotate", "reflect", "zeroTransform"]
+function_name = re.compile(r'^[a-zA-Z][a-zA-Z0-9]*$')
+transforms = ["identity", "shift", "xscale", "yscale", "scale", \
+              "slant", "rotate", "reflect", "zeroTransform", \
+              "inversion"]
+# inversion is a geometry.asy special case?
 
 # abstract syntax tree node
 class SyntaxNode:
@@ -74,12 +77,12 @@ class SyntaxNode:
         if self.raw_text != "":
             # if it's a tuple
             if ',' in self.raw_text:
-                return '(' + self.raw_text + ')'
+                return f"({self.raw_text})"
 
             return self.raw_text
 
         if len(self.children) == 1:
-            return '(' + self.children[0].emit() + ')'
+            return f"({self.children[0].emit()})"
 
         token0 = self.children[0].emit()
         true_children = [child.emit() for child in self.children[1:]]
@@ -87,36 +90,46 @@ class SyntaxNode:
         if function_name.match(token0):
             # transform like rotate
             if token0 in transforms:
-                return token0 + '(' + ", ".join(true_children[:-1]) + ')' \
-                    + " * " + true_children[-1]
+                return f"{token0}({', '.join(true_children[:-1])}) * {true_children[-1]}"
 
-            if token0 in abbr.functions:
-                return abbr.functions[token0] (*true_children)
+            if token0 in dir(alias) and token0[0] != '_':
+                return getattr(alias, token0) (*true_children)
 
             # function like incenter
-            return (abbr.short_names[token0] if token0 in abbr.short_names else token0) \
-                    + '(' + ", ".join(true_children) + ')'
+            return f"{token0}({', '.join(true_children)})"
 
         # operator like +
         else:
-            return '(' + (' ' + token0 + ' ').join(true_children) + ')'
+            return f"({f' {token0} '.join(true_children)})"
 
 #assert(parse_ast("z (a b) (d) e f (g PPP ( h (i + j )))") 
 #       == [['z'], ['a b'], ['d'], ['e'], ['f'], [['g'], ['PPP'], [['h'], ['i + j']]]])
 
 def test():
-    assert(SyntaxNode("(a )").emit() == "a")
-    assert(SyntaxNode("+ A B C D").emit() == "(A + B + C + D)")
-    assert(SyntaxNode("+ (+ A B) (+ A B)").emit() == "((A + B) + (A + B))")
-    assert(SyntaxNode("+ (* 2 A) (* 2 B)").emit() == "((2 * A) + (2 * B))")
-    assert(SyntaxNode("(1, 2)").emit() == "(1,2)")
-    assert(SyntaxNode("dir 110").emit() == "dir(110)")
-    assert(SyntaxNode("+ (1, 2) (3, 4)").emit() == "((1,2) + (3,4))")
-    assert(SyntaxNode("/ (+ A B C D) 4").emit() == "((A + B + C + D) / 4)")
-    assert(SyntaxNode("- (* 2 A) B").emit() == "((2 * A) - B)")
-    assert(SyntaxNode("z (a b)(d ) e f (g PPP ( h (+ i j ) )) ").emit() == "z(a(b), d, e, f, g(PPP, h((i + j))))")
-    assert(SyntaxNode("+ O (rotate 90 (- P O))").emit() == "(O + rotate(90) * (P - O))")
-    assert(SyntaxNode("(rotate -30 E (extension A (foot A B C) C E))").emit() == "rotate(-30, E) * extension(A, foot(A, B, C), C, E)")
+    assert(SyntaxNode("(a )").emit() == \
+                      "a")
+    assert(SyntaxNode("+ A B C D").emit() == \
+                      "(A + B + C + D)")
+    assert(SyntaxNode("+ (+ A B) (+ A B)").emit() == \
+                      "((A + B) + (A + B))")
+    assert(SyntaxNode("+ (* 2 A) (* 2 B)").emit() == \
+                      "((2 * A) + (2 * B))")
+    assert(SyntaxNode("(1, 2)").emit() == \
+                      "(1,2)")
+    assert(SyntaxNode("dir 110").emit() == \
+                      "dir(110)")
+    assert(SyntaxNode("+ (1, 2) (3, 4)").emit() == \
+                      "((1,2) + (3,4))")
+    assert(SyntaxNode("/ (+ A B C D) 4").emit() == \
+                      "((A + B + C + D) / 4)")
+    assert(SyntaxNode("- (* 2 A) B").emit() == \
+                      "((2 * A) - B)")
+    assert(SyntaxNode("z (a b)(d ) e (f g ( h (+ i j) )) ").emit() == \
+                      "z(a(b), d, e, f(g, h((i + j))))")
+    assert(SyntaxNode("+ O (rotate 90 (- P O))").emit() == \
+                      "(O + rotate(90) * (P - O))")
+    assert(SyntaxNode("(scale 2 (extension A (foot A B C) C E))").emit() == \
+                      "scale(2) * extension(A, foot(A, B, C), C, E)")
 
 if __name__ == "__main__":
     test()
