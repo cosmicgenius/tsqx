@@ -6,6 +6,7 @@
 
 import re, sys
 import parse
+import arrows
 
 def generate_points(kind, n):
     if kind == "triangle":
@@ -54,17 +55,24 @@ class Draw(Op):
         self.exp = exp
         self.fill = options.get("fill", None)
         self.outline = options.get("outline", None)
-        self.clip = options["clip"] # it will always have this
+        self.clip = options.get("clip", None)
+        self.arrow = options.get("arrow", None) 
 
     def emit(self):
+        arrow = f"{self.arrow[0]}({self.arrow[1]})" if self.arrow else None
         if self.fill:
             outline = self.outline or "defaultpen"
-            return f"filldraw((path) {self.exp}, {self.fill}, {outline});"
+            return f"filldraw((path) {self.exp}, {self.fill}, {outline}" + \
+                   f"{f', arrow={arrow}' if arrow else ''});"
+
         elif self.outline:
             return f"{'clipdraw' if self.clip else 'draw'}" + \
-                   f"({self.exp}, {self.outline});"
+                   f"({self.exp}, {self.outline}" + \
+                   f"{f', arrow={arrow}' if arrow else ''});"
+
         else:
-            return f"{'clipdraw' if self.clip else 'draw'}({self.exp});"
+            return f"{'clipdraw' if self.clip else 'draw'}({self.exp}" + \
+                   f"{f', arrow={arrow}' if arrow else ''});"
 
 
 class Parser:
@@ -146,23 +154,29 @@ class Parser:
 
         fill = []
         for pen in fill_:
-            if re.fullmatch(r"\d*\.?\d*", pen):
+            if re.fullmatch(r"\d*\.?\d*", pen): # decimal for opacity
                 fill.append(f"opacity({pen})")
             else:
                 fill.append(pen)
         
         outline = []
         clip = False
+        arrow = None
         for pen in outline_:
-            if pen == "x":
+            if pen == 'x': # clipdraw
                 clip = True
+            elif pen in arrows.arrow_dict: # arrow 
+                arrow = arrows.arrow_dict[pen]
+            elif re.fullmatch(r"\d*\.?\d*", pen): # decimal for linewidth
+                outline.append(f"linewidth({pen})")
             else:
                 outline.append(pen)
 
         return { 
             "fill": "+".join(fill),
             "outline": "+".join(outline),
-            "clip": clip
+            "clip": clip,
+            "arrow": arrow
         }
 
     def parse(self, line):
