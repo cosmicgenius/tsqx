@@ -54,15 +54,17 @@ class Draw(Op):
         self.exp = exp
         self.fill = options.get("fill", None)
         self.outline = options.get("outline", None)
+        self.clip = options["clip"] # it will always have this
 
     def emit(self):
         if self.fill:
             outline = self.outline or "defaultpen"
             return f"filldraw((path) {self.exp}, {self.fill}, {outline});"
         elif self.outline:
-            return f"draw({self.exp}, {self.outline});"
+            return f"{'clipdraw' if self.clip else 'draw'}" + \
+                   f"({self.exp}, {self.outline});"
         else:
-            return f"draw({self.exp});"
+            return f"{'clipdraw' if self.clip else 'draw'}({self.exp});"
 
 
 class Parser:
@@ -137,10 +139,10 @@ class Parser:
         try:
             idx = line.index("/")
             fill_ = line[:idx].split()
-            outline = line[idx + 1:].split()
+            outline_ = line[idx + 1:].split()
         except ValueError:
             fill_ = []
-            outline = line.split()
+            outline_ = line.split()
 
         fill = []
         for pen in fill_:
@@ -148,8 +150,20 @@ class Parser:
                 fill.append(f"opacity({pen})")
             else:
                 fill.append(pen)
+        
+        outline = []
+        clip = False
+        for pen in outline_:
+            if pen == "x":
+                clip = True
+            else:
+                outline.append(pen)
 
-        return {"fill": "+".join(fill), "outline": "+".join(outline)}
+        return { 
+            "fill": "+".join(fill),
+            "outline": "+".join(outline),
+            "clip": clip
+        }
 
     def parse(self, line):
         line, *comment = line.split("#", 1)

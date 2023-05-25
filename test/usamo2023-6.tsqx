@@ -14,5 +14,5 @@ circle A B C / blue
 -- B I_B / purple
 -- C I_C / purple
 -- I_A I_B I_C cycle / heavygreen
-circle D I I_A / red
-circle D I_B I_C / red
+circle D I I_A / red x
+circle D I_B I_C / red x

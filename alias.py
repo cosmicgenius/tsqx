@@ -37,6 +37,3 @@ def VA(t):
 
 def circle(A, B, C):
     return f"circumcircle({A}, {B}, {C})"
-
-def rightangle(*args):
-    return f"rightanglemark({', '.join(args)})"
