@@ -1,0 +1,30 @@
+# test
+# sdfjklsdfj
+~triangle P Q R
+
+B S = (-0.5, 0)
+C S = (0.5, 0)
+A N = IP (-- -0.2,0 -0.2,1434) (scale 1.5 (sqrt 2) unitcircle)
+D S = - (* 2 C) B
+G S = - (* 2 B) C
+E NE = + C (* (dist B C) (varg A C))
+F NW = + B (* (dist B C) (varg A B))
+I_C d= extension G (+ G (rotate 90 (- B G))) F (+ F (rotate 270 (- B F)))
+I_B := extension D (+ D (rotate 90 (- C D))) E (+ E (rotate 270 (- C E)))
+asdf = asdfP asdf asdf 
+asadf = asdf asdf asdf sda 
+asdfasdf
+true 
+adsfasdf asdf asdf P
+
+-- A B C cycle / blue 0.8
+-- D G / blue 0.8
+CP I_C G / blue 0.4 x
+-- I_C G / blue 0.4
+CP I_B D / blue 0.4 x
+-- B E / blue 0.4
+-- G F / blue 0.4
+-- E D / red
+-- C I_C / red
+-- C F / heavygreen
+-- B I_C / heavygreen

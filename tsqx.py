@@ -34,7 +34,12 @@ class Point():
         self.dot = options.get("dot", True)
         self.label = options.get("label", name)
         if self.label:
-            self.label = self.label.replace("_prime", "'")
+            for old, new in [
+                ("'", "_prime"),
+                ("{", "_lbrace_"),
+                ("}", "_rbrace_"),
+            ]:
+                self.label = self.label.replace(new, old)
         self.direction = options.get("direction", f"dir({name})")
 
     def emit(self):
@@ -88,6 +93,8 @@ class Parser:
         for old, new in [
             # ' not allowed in variable names
             ("'", "_prime"),
+            ("{", "_lbrace_"),
+            ("}", "_rbrace_"),
             # ~, =, / are separate tokens
             ("~", " ~ "),
             ("=", " = "),
