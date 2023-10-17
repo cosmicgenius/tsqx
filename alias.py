@@ -45,11 +45,8 @@ def CR(O, r):
 def VA(t):
     return f"{t}.VA"
 
-def VA(t):
+def VB(t):
     return f"{t}.VB"
 
-def VA(t):
+def VC(t):
     return f"{t}.VC"
-
-def circle(A, B, C):
-    return f"circumcircle({A}, {B}, {C})"
